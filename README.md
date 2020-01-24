@@ -1,0 +1,3 @@
+# Puffing Billy&mdash;A Java Concurrency Framework Supporting Deterministic Simulation Testing
+
+Java provides insufficient control of thread scheduling, particularly with regard to testing concurrent applications. This project provides an alternative concurrency framework, one that can be run on Java's native thread scheduling in production, but which can be run deterministically, in a single thread, during testing.
