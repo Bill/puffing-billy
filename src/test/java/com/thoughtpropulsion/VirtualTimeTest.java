@@ -25,7 +25,7 @@ public class VirtualTimeTest {
 
     final AtomicBoolean flag = new AtomicBoolean(false);
 
-    scheduler.schedule(()->flag.set(true), 0, MILLISECONDS);
+    scheduler.schedule(()->flag.set(true));
 
     assertThat(flag.get()).isFalse().describedAs("scheduler ran task prematurely");
   }
@@ -35,7 +35,7 @@ public class VirtualTimeTest {
 
     final AtomicBoolean flag = new AtomicBoolean(false);
 
-    scheduler.schedule(()->flag.set(true), 0, MILLISECONDS);
+    scheduler.schedule(()->flag.set(true));
 
     scheduler.triggerActions();
 
@@ -60,8 +60,8 @@ public class VirtualTimeTest {
     final AtomicBoolean flag = new AtomicBoolean(false);
 
     scheduler.schedule(()->{
-      scheduler.schedule(()->flag.set(true), 0, MILLISECONDS);
-    }, 0, MILLISECONDS);
+      scheduler.schedule(()->flag.set(true));
+    });
 
     scheduler.triggerActions();
 
@@ -75,7 +75,7 @@ public class VirtualTimeTest {
 
     scheduler.schedule(()->{
       scheduler.schedule(()->flag.set(true), 1, MILLISECONDS);
-    }, 0, MILLISECONDS);
+    });
 
     scheduler.triggerActions();
 
@@ -109,8 +109,8 @@ public class VirtualTimeTest {
 
     final AtomicInteger flag = new AtomicInteger(0);
 
-    scheduler.schedule(()->flag.compareAndSet(0,1), 0, MILLISECONDS);
-    scheduler.schedule(()->flag.compareAndSet(1,2), 0, MILLISECONDS);
+    scheduler.schedule(()->flag.compareAndSet(0,1));
+    scheduler.schedule(()->flag.compareAndSet(1,2));
 
     scheduler.triggerActions();
 
