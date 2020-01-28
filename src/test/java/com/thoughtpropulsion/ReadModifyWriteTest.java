@@ -28,8 +28,6 @@ public class ReadModifyWriteTest {
     scheduler.schedule(newMutator(writeChannel, readChannel));
     scheduler.schedule(newMutator(writeChannel, readChannel));
 
-    virtualTime.advance(1, TimeUnit.SECONDS);
-
     scheduler.triggerActions();
   }
 
@@ -49,12 +47,11 @@ public class ReadModifyWriteTest {
   private Runnable newMutator(final ChannelSynchronous<Integer> writeChannel,
                               final ChannelSynchronous<Integer> readChannel) {
     return () -> {
-      final AtomicInteger value = new AtomicInteger(0);
       for(int i = 0; i < 5; ++i) {
-        Channels.select(
-            writeChannel.onReceive(value::set),
-            readChannel.onSend(value::get)
-        );
+        readChannel.receive( oldValue -> {
+          final int newValue = oldValue + 1;
+          writeChannel.send( () -> newValue);
+        });
       }
     };
   }
