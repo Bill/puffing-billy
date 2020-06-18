@@ -20,8 +20,8 @@ public class ReadModifyWriteTest {
   @Test
   public void foo() {
 
-    final ChannelSynchronous<Integer> writeChannel = new ChannelSynchronous<>();
-    final ChannelSynchronous<Integer> readChannel = new ChannelSynchronous<>();
+    final Channel<Integer> writeChannel = new ChannelSynchronous<>();
+    final Channel<Integer> readChannel = new ChannelSynchronous<>();
 
     scheduler.schedule(newRegister(writeChannel, readChannel));
 
@@ -31,8 +31,8 @@ public class ReadModifyWriteTest {
     scheduler.triggerActions();
   }
 
-  private Runnable newRegister(final ChannelSynchronous<Integer> writeChannel,
-                               final ChannelSynchronous<Integer> readChannel) {
+  private Runnable newRegister(final Channel<Integer> writeChannel,
+                               final Channel<Integer> readChannel) {
     return () -> {
       final AtomicInteger value = new AtomicInteger(0);
       for(int i = 0; i < 5; ++i) {
@@ -44,8 +44,8 @@ public class ReadModifyWriteTest {
     };
   }
 
-  private Runnable newMutator(final ChannelSynchronous<Integer> writeChannel,
-                              final ChannelSynchronous<Integer> readChannel) {
+  private Runnable newMutator(final Channel<Integer> writeChannel,
+                              final Channel<Integer> readChannel) {
     return () -> {
       for(int i = 0; i < 5; ++i) {
         readChannel.receive( oldValue -> {
