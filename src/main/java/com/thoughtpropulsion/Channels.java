@@ -1,13 +1,15 @@
 package com.thoughtpropulsion;
 
-import java.util.Arrays;
+import java.util.List;
 
 public class Channels {
   private Channels() {}
 
-  public static void select(final ChannelOperation ... ops) {
-    for (int i = 0; i < ops.length; ++i) {
+  // Apply processor when any channels are ready. Keep going until processor
+  // returns false.
+  public static void selectWhile( final List<ChannelReading> readingChannels,
+                                  final List<ChannelWriting> writingChannels,
+                                  final SelectProcessor processor) {
 
-    }
   }
 }

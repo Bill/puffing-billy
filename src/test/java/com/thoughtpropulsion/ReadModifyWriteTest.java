@@ -1,12 +1,17 @@
 package com.thoughtpropulsion;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Collections;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ReadModifyWriteTest {
+
+  public static final int NUM_MUTATORS = 2;
+  public static final int NUM_MUTATIIONS_PER_MUTATOR = 5;
+  public static final int NUM_TOTAL_MUTATIONS = NUM_MUTATORS * NUM_MUTATIIONS_PER_MUTATOR;
 
   private VirtualTime virtualTime;
   private TestScheduler scheduler;
@@ -20,40 +25,76 @@ public class ReadModifyWriteTest {
   @Test
   public void foo() {
 
-    final Channel<Integer> writeChannel = new ChannelSynchronous<>();
-    final Channel<Integer> readChannel = new ChannelSynchronous<>();
+    // channel for feeding the register
+    final ChannelSynchronous<Integer> feedRegister = new ChannelSynchronous<>();
 
-    scheduler.schedule(newRegister(writeChannel, readChannel));
+    // channel for reading from the register
+    final ChannelSynchronous<Integer> readRegister = new ChannelSynchronous<>();
 
-    scheduler.schedule(newMutator(writeChannel, readChannel));
-    scheduler.schedule(newMutator(writeChannel, readChannel));
+    scheduler.schedule(newRegister(feedRegister.getReadable(), readRegister.getWritable()));
+
+    for (int i = 0; i < NUM_MUTATORS; ++i)
+      scheduler.schedule(newMutator(readRegister.getReadable(), feedRegister.getWritable()));
 
     scheduler.triggerActions();
   }
 
-  private Runnable newRegister(final Channel<Integer> writeChannel,
-                               final Channel<Integer> readChannel) {
+  private static class RegisterData {
+    public int value;
+    public int iteration;
+  }
+
+  private Runnable newRegister(final ChannelReading<Integer> readChannel,
+                               final ChannelWriting<Integer> writeChannel) {
     return () -> {
-      final AtomicInteger value = new AtomicInteger(0);
-      for(int i = 0; i < 5; ++i) {
-        Channels.select(
-            writeChannel.onReceive(value::set),
-            readChannel.onSend(value::get)
-        );
-      }
+      /*
+       No concurrency control is required on the register data. Because it's accessed in
+       a lambda, we have to have a final reference. But the object referred to can be
+       mutated in the lambda with no concurrency control because at most one thread will
+       be in the lambda at a time.
+
+       Question: will it be the _same_ thread though? If it's a different thread then we
+       will have _visibility_ problems unless we use volatiles (or AtomicXXX.)
+       What if the framework could guarantee that the _same_ thread always ran a particular
+       lambda (instance)? That would free us from having to use volatiles etc.
+       */
+      final RegisterData registerData = new RegisterData();
+
+      Channels.selectWhile(
+          Collections.singletonList(readChannel),
+          Collections.singletonList(writeChannel),
+          (suppliers, consumers) -> {
+            final Supplier<Integer> input = suppliers.get(readChannel);
+            if (input != null)
+              registerData.value = input.get();
+            final Consumer<Integer> output = consumers.get(writeChannel);
+            if (output != null)
+              output.accept(input.get());
+            return ++registerData.iteration < NUM_TOTAL_MUTATIONS;
+          });
     };
   }
 
-  private Runnable newMutator(final Channel<Integer> writeChannel,
-                              final Channel<Integer> readChannel) {
+  private Runnable newMutator(final ChannelReading<Integer> readChannel,
+                              final ChannelWriting<Integer> writeChannel) {
     return () -> {
-      for(int i = 0; i < 5; ++i) {
-        readChannel.receive( oldValue -> {
-          final int newValue = oldValue + 1;
-          writeChannel.send( () -> newValue);
-        });
-      }
+      // We need a final reference to share with the lambda. This array suffices.
+      final int[] iteration = {0};
+
+      Channels.selectWhile(
+          Collections.singletonList(readChannel),
+          Collections.singletonList(writeChannel),
+          (suppliers, consumers) -> {
+            final Supplier<Integer> oldValue = suppliers.get(readChannel);
+            if (oldValue != null) {
+              final Consumer<Integer> output = consumers.get(writeChannel);
+              if (output != null) {
+                final int newValue = oldValue.get() + 1;
+                output.accept(newValue);
+              }
+            }
+            return ++iteration[0] < NUM_MUTATIIONS_PER_MUTATOR;
+          });
     };
   }
-
 }
