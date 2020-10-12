@@ -8,5 +8,5 @@ import java.util.function.Supplier;
 public interface SelectProcessor {
 
   // selectWhile() continues as long as this returns true
-  boolean apply( Map<Channel, Supplier> suppliers, Map<Channel, Consumer> consumers);
+  boolean apply( Map<ChannelReading, Supplier> suppliers, Map<ChannelWriting, Consumer> consumers);
 }

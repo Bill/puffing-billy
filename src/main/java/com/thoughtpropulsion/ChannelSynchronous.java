@@ -1,18 +1,18 @@
 package com.thoughtpropulsion;
 
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+public class ChannelSynchronous<T> implements Channel<T> {
 
-public class ChannelSynchronous<T> {
+  private ChannelReading<T> channelReading = new ChannelReading<>() {};
+  private ChannelWriting<T> channelWriting = new ChannelWriting<>() {};
 
-  public ChannelReading<T> getReadable() {
-    return new ChannelReading<T>() {
-
-    };
+  @Override
+  public ChannelReading<T> getReading() {
+    return channelReading;
   }
-  public ChannelWriting<T> getWritable() {
-    return new ChannelWriting<T>() {
-    };
+
+  @Override
+  public ChannelWriting<T> getWriting() {
+    return channelWriting;
   }
 
 }

@@ -1,4 +1,4 @@
 package com.thoughtpropulsion;
 
-public interface ChannelWriting<T> extends Channel<T> {
+public interface ChannelWriting<T> {
 }

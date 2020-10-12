@@ -1,9 +1,12 @@
 package com.thoughtpropulsion;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import com.thoughtpropulsion.test.TestScheduler;
+import com.thoughtpropulsion.test.VirtualTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,15 +29,15 @@ public class ReadModifyWriteTest {
   public void foo() {
 
     // channel for feeding the register
-    final ChannelSynchronous<Integer> feedRegister = new ChannelSynchronous<>();
+    final Channel<Integer> feedRegister = new ChannelSynchronous<>();
 
     // channel for reading from the register
-    final ChannelSynchronous<Integer> readRegister = new ChannelSynchronous<>();
+    final Channel<Integer> readRegister = new ChannelSynchronous<>();
 
-    scheduler.schedule(newRegister(feedRegister.getReadable(), readRegister.getWritable()));
+    scheduler.schedule(newRegister(feedRegister.getReading(), readRegister.getWriting()));
 
     for (int i = 0; i < NUM_MUTATORS; ++i)
-      scheduler.schedule(newMutator(readRegister.getReadable(), feedRegister.getWritable()));
+      scheduler.schedule(newMutator(readRegister.getReading(), feedRegister.getWriting()));
 
     scheduler.triggerActions();
   }
@@ -44,9 +47,9 @@ public class ReadModifyWriteTest {
     public int iteration;
   }
 
-  private Runnable newRegister(final ChannelReading<Integer> readChannel,
-                               final ChannelWriting<Integer> writeChannel) {
-    return () -> {
+  private Consumer<TaskScheduler> newRegister(final ChannelReading<Integer> readChannel,
+                                              final ChannelWriting<Integer> writeChannel) {
+    return scheduler -> {
       /*
        No concurrency control is required on the register data. Because it's accessed in
        a lambda, we have to have a final reference. But the object referred to can be
@@ -60,9 +63,9 @@ public class ReadModifyWriteTest {
        */
       final RegisterData registerData = new RegisterData();
 
-      Channels.selectWhile(
-          Collections.singletonList(readChannel),
-          Collections.singletonList(writeChannel),
+      scheduler.selectWhile(
+          singletonList(readChannel),
+          singletonList(writeChannel),
           (suppliers, consumers) -> {
             final Supplier<Integer> input = suppliers.get(readChannel);
             if (input != null)
@@ -75,15 +78,15 @@ public class ReadModifyWriteTest {
     };
   }
 
-  private Runnable newMutator(final ChannelReading<Integer> readChannel,
-                              final ChannelWriting<Integer> writeChannel) {
-    return () -> {
+  private Consumer<TaskScheduler> newMutator(final ChannelReading<Integer> readChannel,
+                                             final ChannelWriting<Integer> writeChannel) {
+    return scheduler -> {
       // We need a final reference to share with the lambda. This array suffices.
       final int[] iteration = {0};
 
-      Channels.selectWhile(
-          Collections.singletonList(readChannel),
-          Collections.singletonList(writeChannel),
+      scheduler.selectWhile(
+          singletonList(readChannel),
+          singletonList(writeChannel),
           (suppliers, consumers) -> {
             final Supplier<Integer> oldValue = suppliers.get(readChannel);
             if (oldValue != null) {
