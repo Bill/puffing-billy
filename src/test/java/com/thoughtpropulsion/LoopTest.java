@@ -1,8 +1,7 @@
 package com.thoughtpropulsion;
 
+import static com.thoughtpropulsion.ControlStructures.nTimes;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.thoughtpropulsion.test.TestScheduler;
 import com.thoughtpropulsion.test.VirtualTime;
@@ -21,26 +20,22 @@ public class LoopTest {
   }
 
   @Test
-  public void loopOnce() {
+  public void testLoopN() {
+    final int N = 3;
+    /*
+     For communicating a result we need a final (or at least "effectively final") variable
+     that can be referenced from within the inner class. We could use an AtomicInteger, but
+     we don't need the concurrency control it provides. A single-element array suffices.
+     */
+    final int[] actualIterations = {0};
 
-    final AtomicInteger actualIterations = new AtomicInteger(0);
-
-    scheduler.schedule( () -> {
-
-      // for(int i = 0; i < 1; ++i)
-
-      final AtomicInteger i = new AtomicInteger(0);
-
-      if (i.get() < 1) {
-        scheduler.schedule( () -> {
-          actualIterations.incrementAndGet();
-          i.incrementAndGet();
-        });
-      }
-    });
+    scheduler.schedule(nTimes(N, _ignoredScheduler -> {
+      actualIterations[0] += 1; // side-effect
+    }));
 
     scheduler.triggerActions();
 
-    assertThat(actualIterations.get()).isEqualTo(1);
+    assertThat(actualIterations[0]).isEqualTo(N);
   }
+
 }

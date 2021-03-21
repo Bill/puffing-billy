@@ -29,7 +29,7 @@ public class SelectWhileTest {
   }
 
 
-  private TestScheduler scheduler;
+  private TaskScheduler scheduler;
 
   @BeforeEach
   public void before() {
@@ -44,14 +44,14 @@ public class SelectWhileTest {
   }
 
   @Test
-  public void entrant() {
+  public void selectWhileIsEntrant() {
     final SelectProcessor noOpSelectProcessor = (suppliers, consumers) -> false;
     scheduler.selectWhile(singletonList(channelForTest.channelReading),
         singletonList(channelForTest.channelWriting), noOpSelectProcessor);
   }
 
   @Test
-  public void nonReEntrant() {
+  public void selectWhileIsNotReEntrant() {
     final SelectProcessor noOpSelectProcessor = (suppliers, consumers) -> false;
 
     final SelectProcessor reEntrantSelectProcessor = (suppliers, consumers) -> {
