@@ -1,6 +1,12 @@
 package com.thoughtpropulsion.test;
 
-import java.security.Provider;
+import com.thoughtpropulsion.ChannelReading;
+import com.thoughtpropulsion.ChannelWriting;
+import com.thoughtpropulsion.NanoTime;
+import com.thoughtpropulsion.SelectProcessor;
+import com.thoughtpropulsion.Task;
+import com.thoughtpropulsion.TaskScheduler;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,23 +15,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import com.thoughtpropulsion.ChannelReading;
-import com.thoughtpropulsion.ChannelWriting;
-import com.thoughtpropulsion.NanoTime;
-import com.thoughtpropulsion.SelectProcessor;
-import com.thoughtpropulsion.Task;
-import com.thoughtpropulsion.TaskScheduler;
-
 public class TestScheduler implements TaskScheduler {
 
   final NanoTime nanoTime;
   final PriorityQueue<Task> tasks;
-  boolean isInsideSelectWhen;
+  boolean isInsideSelectWhile;
 
   public TestScheduler(final NanoTime nanoTime) {
     this.nanoTime = nanoTime;
     tasks = new PriorityQueue<>();
-    isInsideSelectWhen = false;
+    isInsideSelectWhile = false;
   }
 
   public void triggerActions() {
@@ -64,11 +63,11 @@ public class TestScheduler implements TaskScheduler {
   public void selectWhile(final List<ChannelReading> readingChannels,
                           final List<ChannelWriting> writingChannels,
                           final SelectProcessor processor) {
-    if (isInsideSelectWhen)
+    if (isInsideSelectWhile)
       throw new IllegalStateException("Aready in selectWhile(). Re-entrant calls are prohibited");
 
     try {
-      isInsideSelectWhen = true;
+      isInsideSelectWhile = true;
 
       final Map<ChannelReading, Supplier> channelReadingSupplierMap = new HashMap<>();
       final Map<ChannelWriting, Consumer> channelWritingConsumerMap = new HashMap<>();
@@ -76,7 +75,7 @@ public class TestScheduler implements TaskScheduler {
       processor.apply(channelReadingSupplierMap, channelWritingConsumerMap);
 
     } finally {
-      isInsideSelectWhen = false;
+      isInsideSelectWhile = false;
     }
   }
 }

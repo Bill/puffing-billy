@@ -1,10 +1,10 @@
 package com.thoughtpropulsion;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 import java.util.function.Consumer;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TaskTest {
 

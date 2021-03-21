@@ -1,8 +1,9 @@
 package com.thoughtpropulsion;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.PriorityQueue;
 
-import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class PriorityQueueTest {

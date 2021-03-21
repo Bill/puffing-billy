@@ -1,8 +1,8 @@
 package com.thoughtpropulsion.test;
 
-import java.util.concurrent.TimeUnit;
-
 import com.thoughtpropulsion.NanoTime;
+
+import java.util.concurrent.TimeUnit;
 
 public class VirtualTime implements NanoTime {
   private long nanoTime = 0;

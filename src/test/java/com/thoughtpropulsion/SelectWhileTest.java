@@ -1,12 +1,12 @@
 package com.thoughtpropulsion;
 
 
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.thoughtpropulsion.test.TestScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class SelectWhileTest {
 
