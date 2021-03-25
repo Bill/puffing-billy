@@ -5,10 +5,12 @@ import com.thoughtpropulsion.test.VirtualTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static com.thoughtpropulsion.ControlStructures.whileSelect;
+import static com.thoughtpropulsion.ControlStructures.ignoreResult;
+import static com.thoughtpropulsion.ControlStructures.select;
+import static com.thoughtpropulsion.ControlStructures.sequence;
+import static com.thoughtpropulsion.ControlStructures.whileLoop;
 
 public class ReadModifyWriteTest {
 
@@ -42,63 +44,78 @@ public class ReadModifyWriteTest {
     scheduler.triggerActions();
   }
 
-  private Consumer<TaskScheduler> newRegister(final ChannelReading<Integer> readChannel,
-                                              final ChannelWriting<Integer> writeChannel) {
+  private SuspendFunctionVoid newRegister(final ChannelReading<Integer> readChannel,
+                                          final ChannelWriting<Integer> writeChannel) {
     return
       // introducing the Supplier around whileSelect() is a convenient way of introducing variables
-      new Supplier<Consumer<TaskScheduler>>() {
+      new Supplier<SuspendFunctionVoid>() {
 
         int value = 0;
         int iteration = 0;
 
         @Override
-        public Consumer<TaskScheduler> get() {
-          return whileSelect(
-            readChannel.onReceive(newValue -> {
-              System.out.println(String.format("register iteration: %d", iteration));
-              value = newValue;
-              System.out.println(String.format("register received: %d", value));
-              return ++iteration < NUM_TOTAL_MUTATIONS;
-            }),
-            writeChannel.onSend(channelWriting -> {
-              System.out.println(String.format("register iteration: %d", iteration));
-              System.out.println(String.format("register sending: %d", value));
-              channelWriting.put(value);
-              System.out.println(String.format("register sent: %d", value));
-              return iteration < NUM_TOTAL_MUTATIONS;
-            })
-          );
+        public SuspendFunctionVoid get() {
+          return
+            whileLoop(
+              () -> iteration < NUM_TOTAL_MUTATIONS,
+              sequence(
+                ignoreResult(select(
+                  readChannel.onReceive(newValue -> {
+                    value = newValue;
+                    log("received: " + value);
+                    return true; // TODO: shouldn't need return value with select()
+                  }))),
+                ignoreResult(select(
+                  writeChannel.onSend(channelWriting -> {
+                    log("sending: " + value);
+                    channelWriting.put(value);
+                    log("sent: " + value);
+                    ++iteration;
+                    return true;
+                  })))));
         }
-      }.get(); // return whileSelect() with captured variables
+
+        private void log(final String msg) {
+          System.out.println(String.format("register iteration: %d: ", iteration) + msg);
+        }
+      }.get(); // return whileLoop() with captured variables
   }
 
-  private Consumer<TaskScheduler> newMutator(final ChannelReading<Integer> readChannel,
-                                             final ChannelWriting<Integer> writeChannel, final int mutatorId) {
+  private SuspendFunctionVoid newMutator(final ChannelReading<Integer> readChannel,
+                                         final ChannelWriting<Integer> writeChannel, final int mutatorId) {
 
     return
       // introducing the Supplier around whileSelect() is a convenient way of introducing variables
-      new Supplier<Consumer<TaskScheduler>>() {
+      new Supplier<SuspendFunctionVoid>() {
 
         int value = 0;
         int iteration = 0;
 
         @Override
-        public Consumer<TaskScheduler> get() {
-          return whileSelect(
-            readChannel.onReceive(newValue -> {
-              System.out.println(String.format("mutator %d iteration: %d", mutatorId, iteration));
-              System.out.println(String.format("mutator %d received: %d", mutatorId, value));
-              value = newValue;
-              return iteration < NUM_MUTATIONS_PER_MUTATOR;
-            }),
-            writeChannel.onSend(channelWriting -> {
-              System.out.println(String.format("mutator %d iteration: %d", mutatorId, iteration));
-              System.out.println(String.format("mutator %d sending: %d", mutatorId, value));
-              channelWriting.put(value+1);
-              System.out.println(String.format("mutator %d sent: %d", mutatorId, value+1));
-              return ++iteration < NUM_MUTATIONS_PER_MUTATOR;
-            })
-          );
+        public SuspendFunctionVoid get() {
+          return
+            whileLoop(
+              () -> iteration < NUM_MUTATIONS_PER_MUTATOR,
+              sequence(
+                ignoreResult(select(
+                  readChannel.onReceive(newValue -> {
+                    value = newValue;
+                    log("received: " + value);
+                    return true; // TODO: shouldn't need return value with select()
+                  }))),
+                ignoreResult(select(
+                  writeChannel.onSend(channelWriting -> {
+                    final int toSend = value + 1;
+                    log("sending: " + toSend);
+                    channelWriting.put(toSend);
+                    log("sent: " + toSend);
+                    ++iteration;
+                    return true;
+                  })))));
+        }
+
+        private void log(final String msg) {
+          System.out.println(String.format("mutator %d iteration: %d: ", mutatorId, iteration) + msg);
         }
       }.get(); // return whileSelect() with captured variables
   }

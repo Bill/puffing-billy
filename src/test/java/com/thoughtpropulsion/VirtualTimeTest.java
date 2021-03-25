@@ -94,18 +94,18 @@ public class VirtualTimeTest {
   @Test
   public void tasksRunInTimeOrder() {
 
-    final AtomicInteger flag = new AtomicInteger(0);
+    final AtomicInteger state = new AtomicInteger(0);
 
     // scheduling later task first just to see if that causes a problem
-    scheduler.schedule(()->flag.compareAndSet(1,2), 2, MILLISECONDS);
-    scheduler.schedule(()->flag.compareAndSet(0,1), 1, MILLISECONDS);
+    scheduler.schedule(()->state.compareAndSet(1,2), 2, MILLISECONDS);
+    scheduler.schedule(()->state.compareAndSet(0,1), 1, MILLISECONDS);
 
     virtualTime.advance(1, MILLISECONDS);
     scheduler.triggerActions();
     virtualTime.advance(1, MILLISECONDS);
     scheduler.triggerActions();
 
-    assertThat(flag.get()).isEqualTo(2).describedAs("tasks didn't run in time order");
+    assertThat(state.get()).isEqualTo(2).describedAs("tasks didn't run in time order");
   }
 
   @Test

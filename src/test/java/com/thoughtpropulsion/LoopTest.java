@@ -21,7 +21,7 @@ public class LoopTest {
 
   @Test
   public void testLoopN() {
-    final int N = 3;
+    final int N = 4;
     /*
      For communicating a result we need a final (or at least "effectively final") variable
      that can be referenced from within the inner class. We could use an AtomicInteger, but
@@ -29,13 +29,13 @@ public class LoopTest {
      */
     final int[] actualIterations = {0};
 
-    scheduler.schedule(forLoop(N, _ignoredScheduler -> {
-      actualIterations[0] += 1; // side-effect
+    scheduler.schedule(forLoop(N, (i, _ignoredScheduler) -> {
+      actualIterations[0] += i; // side-effect
     }));
 
     scheduler.triggerActions();
 
-    assertThat(actualIterations[0]).isEqualTo(N);
+    assertThat(actualIterations[0]).isEqualTo(6);
   }
 
 }
