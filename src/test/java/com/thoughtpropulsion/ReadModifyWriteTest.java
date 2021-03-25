@@ -5,17 +5,16 @@ import com.thoughtpropulsion.test.VirtualTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static java.util.Collections.singletonList;
+import static com.thoughtpropulsion.ControlStructures.whileSelect;
 
 public class ReadModifyWriteTest {
 
   public static final int NUM_MUTATORS = 2;
-  public static final int NUM_MUTATIIONS_PER_MUTATOR = 5;
-  public static final int NUM_TOTAL_MUTATIONS = NUM_MUTATORS * NUM_MUTATIIONS_PER_MUTATOR;
+  public static final int NUM_MUTATIONS_PER_MUTATOR = 5;
+  public static final int NUM_TOTAL_MUTATIONS = NUM_MUTATORS * NUM_MUTATIONS_PER_MUTATOR;
 
   private VirtualTime virtualTime;
   private TestScheduler scheduler;
@@ -27,70 +26,80 @@ public class ReadModifyWriteTest {
   }
 
   @Test
-  public void foo() {
+  public void runRegisterAndMutatorsTest() {
 
     // channel for feeding the register
-    final Channel<Integer> feedRegister = new ChannelSynchronous<>();
+    final ChannelBiDirectional<Integer> feedRegister = new ChannelBounded<>(Integer.class, NUM_TOTAL_MUTATIONS);
 
     // channel for reading from the register
-    final Channel<Integer> readRegister = new ChannelSynchronous<>();
+    final ChannelBiDirectional<Integer> readRegister = new ChannelBounded<>(Integer.class, NUM_TOTAL_MUTATIONS);
 
     scheduler.schedule(newRegister(feedRegister.getReading(), readRegister.getWriting()));
 
     for (int i = 0; i < NUM_MUTATORS; ++i)
-      scheduler.schedule(newMutator(readRegister.getReading(), feedRegister.getWriting()));
+      scheduler.schedule(newMutator(readRegister.getReading(), feedRegister.getWriting(), i));
 
     scheduler.triggerActions();
   }
 
   private Consumer<TaskScheduler> newRegister(final ChannelReading<Integer> readChannel,
                                               final ChannelWriting<Integer> writeChannel) {
-    return scheduler -> {
+    return
+      // introducing the Supplier around whileSelect() is a convenient way of introducing variables
+      new Supplier<Consumer<TaskScheduler>>() {
 
-      scheduler.selectWhile(
-        singletonList(readChannel),
-        singletonList(writeChannel),
-        new SelectProcessor() {
-          public int value = 0;
-          public int iteration = 0;
+        int value = 0;
+        int iteration = 0;
 
-          @Override
-          public boolean apply(final Map<ChannelReading, Supplier> suppliers, final Map<ChannelWriting, Consumer> consumers) {
-            final Supplier<Integer> input = suppliers.get(readChannel);
-            if (input != null)
-              value = input.get();
-            final Consumer<Integer> output = consumers.get(writeChannel);
-            if (output != null)
-              output.accept(input.get());
-            return ++iteration < NUM_TOTAL_MUTATIONS;
-          }
-        });
-    };
+        @Override
+        public Consumer<TaskScheduler> get() {
+          return whileSelect(
+            readChannel.onReceive(newValue -> {
+              System.out.println(String.format("register iteration: %d", iteration));
+              value = newValue;
+              System.out.println(String.format("register received: %d", value));
+              return ++iteration < NUM_TOTAL_MUTATIONS;
+            }),
+            writeChannel.onSend(channelWriting -> {
+              System.out.println(String.format("register iteration: %d", iteration));
+              System.out.println(String.format("register sending: %d", value));
+              channelWriting.put(value);
+              System.out.println(String.format("register sent: %d", value));
+              return iteration < NUM_TOTAL_MUTATIONS;
+            })
+          );
+        }
+      }.get(); // return whileSelect() with captured variables
   }
 
   private Consumer<TaskScheduler> newMutator(final ChannelReading<Integer> readChannel,
-                                             final ChannelWriting<Integer> writeChannel) {
-    return scheduler -> {
+                                             final ChannelWriting<Integer> writeChannel, final int mutatorId) {
 
-      scheduler.selectWhile(
-        singletonList(readChannel),
-        singletonList(writeChannel),
-        new SelectProcessor() {
-          int iteration = 0;
+    return
+      // introducing the Supplier around whileSelect() is a convenient way of introducing variables
+      new Supplier<Consumer<TaskScheduler>>() {
 
-          @Override
-          public boolean apply(final Map<ChannelReading, Supplier> suppliers, final Map<ChannelWriting, Consumer> consumers) {
-            final Supplier<Integer> oldValue = suppliers.get(readChannel);
-            if (oldValue != null) {
-              final Consumer<Integer> output = consumers.get(writeChannel);
-              if (output != null) {
-                final int newValue = oldValue.get() + 1;
-                output.accept(newValue);
-              }
-            }
-            return ++iteration < NUM_MUTATIIONS_PER_MUTATOR;
-          }
-        });
-    };
+        int value = 0;
+        int iteration = 0;
+
+        @Override
+        public Consumer<TaskScheduler> get() {
+          return whileSelect(
+            readChannel.onReceive(newValue -> {
+              System.out.println(String.format("mutator %d iteration: %d", mutatorId, iteration));
+              System.out.println(String.format("mutator %d received: %d", mutatorId, value));
+              value = newValue;
+              return iteration < NUM_MUTATIONS_PER_MUTATOR;
+            }),
+            writeChannel.onSend(channelWriting -> {
+              System.out.println(String.format("mutator %d iteration: %d", mutatorId, iteration));
+              System.out.println(String.format("mutator %d sending: %d", mutatorId, value));
+              channelWriting.put(value+1);
+              System.out.println(String.format("mutator %d sent: %d", mutatorId, value+1));
+              return ++iteration < NUM_MUTATIONS_PER_MUTATOR;
+            })
+          );
+        }
+      }.get(); // return whileSelect() with captured variables
   }
 }

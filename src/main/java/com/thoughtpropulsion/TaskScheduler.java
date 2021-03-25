@@ -12,17 +12,5 @@ public interface TaskScheduler {
   void schedule(final Consumer<TaskScheduler> runnable);
   void schedule(final Consumer<TaskScheduler> runnable, final long afterDelay, final TimeUnit delayUnit);
 
-  /**
-   * Apply processor when any channels are ready. Keep going until processor
-   * returns false.
-   *
-   * This method is not reentrant.
-   *
-   * @throws IllegalStateException if called inside another call to this method
-   *
-   * TODO: make this method return something
-   */
-  void selectWhile( final List<ChannelReading> readingChannels,
-                    final List<ChannelWriting> writingChannels,
-                    final SelectProcessor processor);
+  boolean select(SelectClause... clauses);
 }

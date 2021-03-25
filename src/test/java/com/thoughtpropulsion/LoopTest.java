@@ -5,7 +5,7 @@ import com.thoughtpropulsion.test.VirtualTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.thoughtpropulsion.ControlStructures.nTimes;
+import static com.thoughtpropulsion.ControlStructures.forLoop;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class LoopTest {
@@ -29,7 +29,7 @@ public class LoopTest {
      */
     final int[] actualIterations = {0};
 
-    scheduler.schedule(nTimes(N, _ignoredScheduler -> {
+    scheduler.schedule(forLoop(N, _ignoredScheduler -> {
       actualIterations[0] += 1; // side-effect
     }));
 

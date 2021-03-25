@@ -1,6 +1,6 @@
 package com.thoughtpropulsion;
 
-public interface Channel<T> {
+public interface ChannelBiDirectional<T> {
   ChannelReading<T> getReading();
   ChannelWriting<T> getWriting();
 }
