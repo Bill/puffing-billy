@@ -41,24 +41,27 @@ class ChannelBoundedTest {
 
   @Test
   public void wraps() {
-    channel1.getWriting().put(1);
-    assertThat(channel1.getReading().get()).isEqualTo(1);
-    channel1.getWriting().put(2);
-    assertThat(channel1.getReading().get()).isEqualTo(2);
-    assertThatThrownBy(() -> channel1.getReading().get()).isInstanceOf(IllegalStateException.class);
+    final ChannelWriting<Integer> writing = channel1.getWriting();
+    writing.put(1);
+    final ChannelReading<Integer> reading = channel1.getReading();
+    assertThat(reading.get()).isEqualTo(1);
+    writing.put(2);
+    assertThat(reading.get()).isEqualTo(2);
+    assertThatThrownBy(() -> reading.get()).isInstanceOf(IllegalStateException.class);
   }
 
   @Test
   public void wraps2() {
-    channel2.getWriting().put(1);
-    channel2.getWriting().put(2);
-    assertThat(channel2.getReading().get()).isEqualTo(1);
-    channel2.getWriting().put(3);
-    assertThat(channel2.getReading().get()).isEqualTo(2);
-    channel2.getWriting().put(4);
-    assertThat(channel2.getReading().get()).isEqualTo(3);
-    assertThat(channel2.getReading().get()).isEqualTo(4);
-    assertThatThrownBy(() -> channel2.getReading().get()).isInstanceOf(IllegalStateException.class);
+    final ChannelWriting<Integer> writing = channel2.getWriting();
+    writing.put(1);
+    writing.put(2);
+    final ChannelReading<Integer> reading = channel2.getReading();
+    assertThat(reading.get()).isEqualTo(1);
+    writing.put(3);
+    assertThat(reading.get()).isEqualTo(2);
+    writing.put(4);
+    assertThat(reading.get()).isEqualTo(3);
+    assertThat(reading.get()).isEqualTo(4);
+    assertThatThrownBy(() -> reading.get()).isInstanceOf(IllegalStateException.class);
   }
-
 }

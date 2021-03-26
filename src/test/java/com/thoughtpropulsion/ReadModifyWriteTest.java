@@ -63,7 +63,6 @@ public class ReadModifyWriteTest {
                   readChannel.onReceive(newValue -> {
                     value = newValue;
                     log("received: " + value);
-                    return true; // TODO: shouldn't need return value with select()
                   }))),
                 ignoreResult(select(
                   writeChannel.onSend(channelWriting -> {
@@ -71,7 +70,6 @@ public class ReadModifyWriteTest {
                     channelWriting.put(value);
                     log("sent: " + value);
                     ++iteration;
-                    return true;
                   })))));
         }
 
@@ -101,7 +99,6 @@ public class ReadModifyWriteTest {
                   readChannel.onReceive(newValue -> {
                     value = newValue;
                     log("received: " + value);
-                    return true; // TODO: shouldn't need return value with select()
                   }))),
                 ignoreResult(select(
                   writeChannel.onSend(channelWriting -> {
@@ -110,7 +107,6 @@ public class ReadModifyWriteTest {
                     channelWriting.put(toSend);
                     log("sent: " + toSend);
                     ++iteration;
-                    return true;
                   })))));
         }
 

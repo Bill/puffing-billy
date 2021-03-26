@@ -1,5 +1,5 @@
 package com.thoughtpropulsion;
 
-public interface ReceiveClause<T> extends SelectClause {
+public interface ReceiveOrClosedClause<T> extends SelectClause {
   ChannelReading<T> getChannel();
 }
