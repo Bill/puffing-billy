@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.function.Supplier;
 
-import static com.thoughtpropulsion.ControlStructures.ignoreResult;
 import static com.thoughtpropulsion.ControlStructures.select;
 import static com.thoughtpropulsion.ControlStructures.sequence;
 import static com.thoughtpropulsion.ControlStructures.whileLoop;
@@ -59,18 +58,18 @@ public class ReadModifyWriteTest {
             whileLoop(
               () -> iteration < NUM_TOTAL_MUTATIONS,
               sequence(
-                ignoreResult(select(
+                select(
                   readChannel.onReceive(newValue -> {
                     value = newValue;
                     log("received: " + value);
-                  }))),
-                ignoreResult(select(
+                  })),
+                select(
                   writeChannel.onSend(channelWriting -> {
                     log("sending: " + value);
                     channelWriting.put(value);
                     log("sent: " + value);
                     ++iteration;
-                  })))));
+                  }))));
         }
 
         private void log(final String msg) {
@@ -95,19 +94,19 @@ public class ReadModifyWriteTest {
             whileLoop(
               () -> iteration < NUM_MUTATIONS_PER_MUTATOR,
               sequence(
-                ignoreResult(select(
+                select(
                   readChannel.onReceive(newValue -> {
                     value = newValue;
                     log("received: " + value);
-                  }))),
-                ignoreResult(select(
+                  })),
+                select(
                   writeChannel.onSend(channelWriting -> {
                     final int toSend = value + 1;
                     log("sending: " + toSend);
                     channelWriting.put(toSend);
                     log("sent: " + toSend);
                     ++iteration;
-                  })))));
+                  }))));
         }
 
         private void log(final String msg) {

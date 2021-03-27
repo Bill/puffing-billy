@@ -5,7 +5,6 @@ import com.thoughtpropulsion.test.VirtualTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.thoughtpropulsion.ControlStructures.ignoreResult;
 import static com.thoughtpropulsion.ControlStructures.select;
 import static com.thoughtpropulsion.ControlStructures.sequence;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,19 +33,19 @@ public class ChannelBoundedClosedTest {
 
     scheduler.schedule(
       sequence(
-        ignoreResult(select(reading.onReceiveOrClosed((value, isClosed) -> {
+        select(reading.onReceiveOrClosed((value, isClosed) -> {
           results[0] = value;
           closedResults[0] = isClosed;
           return true;
-        }))),
-        ignoreResult(select(reading.onReceiveOrClosed((value, isClosed) -> {
+        })),
+        select(reading.onReceiveOrClosed((value, isClosed) -> {
           // don't care about value because isClosed
           closedResults[1] = isClosed;
           return true;
-        }))),
-        ignoreResult(select(reading.onReceiveOrClosed((value, isClosed) -> {
+        })),
+        select(reading.onReceiveOrClosed((value, isClosed) -> {
           throw new AssertionError("onReceive should not be invoked after close");
-        })))));
+        }))));
 
     scheduler.triggerActions();
 

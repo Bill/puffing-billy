@@ -1,21 +1,24 @@
 package com.thoughtpropulsion;
 
+import java.util.Arrays;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class ControlStructures {
   private ControlStructures() {};
 
-  public static SuspendFunctionVoid whileLoop(final BooleanSupplier condition, final Consumer<TaskScheduler> loopBody) {
+  public static SuspendFunctionVoid whileLoop(final BooleanSupplier condition, final SuspendFunctionVoid loopBody) {
     return new SuspendFunctionVoid() {
       @Override
-      public void accept(final TaskScheduler scheduler) {
-        if (condition.getAsBoolean()) {
-          loopBody.accept(scheduler); // for side-effects
-          scheduler.schedule(this); // iterate
-        }
+      public boolean isReady() {
+        return condition.getAsBoolean() && loopBody.isReady();
+      }
+
+      @Override
+      public void compute(final TaskScheduler scheduler) {
+        loopBody.compute(scheduler); // for side-effects
+        scheduler.schedule(this); // iterate
       }
     };
   }
@@ -34,7 +37,13 @@ public class ControlStructures {
       private int i = 0; // the loop variable
 
       @Override
-      public void accept(final TaskScheduler scheduler) {
+      public boolean isReady() {
+        // TODO: test forLoop(select())--I don't think that will work without delegation here
+        return true;
+      }
+
+      @Override
+      public void compute(final TaskScheduler scheduler) {
         if (i < n) {
           loopBody.accept(i, scheduler); // for side-effects
           ++i;
@@ -57,23 +66,57 @@ public class ControlStructures {
 
       @Override
       public SuspendFunctionVoid get() {
-        return whileLoop(() -> i < n, scheduler -> {
-          ++i;
-          loopBody.accept(i, scheduler); // for side-effets
-        });
+        return whileLoop(() -> i < n,
+          new SuspendFunctionVoid() {
+            @Override
+            public boolean isReady() {
+              // TODO: test forLoop(select())--I don't think that will work without delegation here
+              return true;
+            }
+
+            @Override
+            public void compute(final TaskScheduler scheduler) {
+              ++i;
+              loopBody.accept(i, scheduler); // for side-effets
+            }
+          }
+        );
       }
     }.get();
   }
 
-  // Useful for using result-returning (functions) in sequences
-  public static <R> SuspendFunctionVoid ignoreResult(final SuspendFunction<R> f) {
-    return f::apply;
+  public static <T> SuspendFunctionVoid statement(final Supplier<T> supplier) {
+    return statement(() -> {supplier.get();});
   }
 
-  public static <R> SuspendFunctionVoid sequence(final SuspendFunctionVoid... steps) {
+  public static SuspendFunctionVoid statement(final Runnable runnable) {
+    return new SuspendFunctionVoid() {
+      @Override
+      public boolean isReady() {
+        return true;
+      }
+
+      @Override
+      public void compute(final TaskScheduler scheduler) {
+        runnable.run();
+      }
+    };
+  }
+
+  public static SuspendFunctionVoid sequence(final SuspendFunctionVoid... steps) {
 
     if (steps.length < 1)
-      return scheduler -> {}; // no-op
+      // TODO: optimize out this no-op statement
+      return new SuspendFunctionVoid() {
+        @Override
+        public boolean isReady() {
+          return true;
+        }
+
+        @Override
+        public void compute(final TaskScheduler scheduler) {
+        }
+      }; // no-op
 
     return new Supplier<SuspendFunctionVoid> () {
 
@@ -87,9 +130,18 @@ public class ControlStructures {
         while (i > -1) {
           final SuspendFunctionVoid currentStep = steps[i];
           final SuspendFunctionVoid subsequentSteps = result;
-          result = scheduler -> {
-            currentStep.accept(scheduler);
-            subsequentSteps.accept(scheduler);
+          result = new SuspendFunctionVoid() {
+
+            @Override
+            public boolean isReady() {
+              return currentStep.isReady();
+            }
+
+            @Override
+            public void compute(final TaskScheduler scheduler) {
+              currentStep.compute(scheduler);
+              scheduler.schedule(subsequentSteps);
+            }
           };
           --i;
         }
@@ -104,20 +156,38 @@ public class ControlStructures {
    Returns a select clause which is a predicate: given the scheduler, it returns true/false
    and invokes zero-or-more ready clauses as a side-effect.
    */
-  public static SuspendFunction<Boolean> select(
+  public static SuspendFunctionVoid select(
     final SelectClause... clauses) {
-    return taskScheduler -> taskScheduler.select(clauses);
+    return new SuspendFunctionVoid() {
+      @Override
+      public boolean isReady() {
+        return Arrays.stream(clauses).map(SelectClause::getChannel)
+          .anyMatch(Readiness::isReady);
+      }
+
+      @Override
+      public void compute(final TaskScheduler scheduler) {
+        scheduler.runReadyClauses(clauses);
+      }
+    };
   }
 
   public static SuspendFunctionVoid whileSelect(
     final SelectClause... clauses) {
     return new SuspendFunctionVoid() {
       @Override
-      public void accept(final TaskScheduler scheduler) {
-        if (select(clauses).apply(scheduler)) { // let processor work
-          scheduler.schedule(this); // iterate
+      public boolean isReady() {
+        return Arrays.stream(clauses).map(SelectClause::getChannel)
+          .anyMatch(Readiness::isReady);
+      }
+
+      @Override
+      public void compute(final TaskScheduler scheduler) {
+        if (scheduler.runReadyClauses(clauses)) {
+          scheduler.schedule(this);
         }
-      }};
+      }
+    };
   }
 
 }

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.thoughtpropulsion.ControlStructures.sequence;
+import static com.thoughtpropulsion.ControlStructures.statement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SequenceTest {
@@ -28,8 +29,8 @@ class SequenceTest {
 
     scheduler.schedule(
       sequence(
-        scheduler -> state.compareAndSet(0,1),
-        scheduler -> state.compareAndSet(1,2)
+        statement(() -> state.compareAndSet(0,1)),
+        statement(() -> state.compareAndSet(1,2))
       )
     );
 
@@ -37,5 +38,6 @@ class SequenceTest {
 
     assertThat(state.get()).isEqualTo(2);
   }
+
 
 }

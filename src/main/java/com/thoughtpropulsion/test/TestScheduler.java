@@ -6,6 +6,7 @@ import com.thoughtpropulsion.ChannelWriting;
 import com.thoughtpropulsion.NanoTime;
 import com.thoughtpropulsion.Random;
 import com.thoughtpropulsion.RandomImpl;
+import com.thoughtpropulsion.ReadyCompute;
 import com.thoughtpropulsion.SelectClause;
 import com.thoughtpropulsion.SelectProcessor;
 import com.thoughtpropulsion.Task;
@@ -20,7 +21,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class TestScheduler implements TaskScheduler {
 
@@ -75,16 +75,18 @@ public class TestScheduler implements TaskScheduler {
         head = tasks.peek();
       } while (head != null && head.runnableAsOfNanos <= now);
 
-      // randomly pick one task to run
-      final Task[] runnables = runnableList.toArray(new Task[0]);
-      final int i = random.nextInt(runnables.length);
-      runnables[i].runnable.accept(this);
+      // filter the list further: to tasks that say they are ready
+      final Task[] runnables = runnableList.stream().filter(task -> task.runnable.isReady()).toArray(Task[]::new);
+      if (runnables.length > 0) {
+        // randomly pick one task to run
+        final int i = random.nextInt(runnables.length);
+        runnables[i].runnable.compute(this);
 
-      // re-queue the tasks we didn't run
-      Streams.concat(
-        Arrays.stream(Arrays.copyOfRange(runnables, 0, i)),
-        Arrays.stream(Arrays.copyOfRange(runnables, i + 1, runnables.length))).forEach(tasks::add);
-
+        // re-queue the tasks we didn't run
+        Streams.concat(
+          Arrays.stream(Arrays.copyOfRange(runnables, 0, i)),
+          Arrays.stream(Arrays.copyOfRange(runnables, i + 1, runnables.length))).forEach(tasks::add);
+      }
       head = tasks.peek();
     }
   }
@@ -101,26 +103,52 @@ public class TestScheduler implements TaskScheduler {
 
   @Override
   public void schedule(final Consumer<TaskScheduler> runnable) {
-    schedule(runnable, 0, TimeUnit.SECONDS);
+    schedule(new ReadyCompute() {
+      @Override
+      public boolean isReady() {
+        return true;
+      }
+
+      @Override
+      public void compute(final TaskScheduler scheduler) {
+        runnable.accept(scheduler);
+      }
+    });
   }
 
   @Override
   public void schedule(final Consumer<TaskScheduler> runnable, final long afterDelay,
                        final TimeUnit delayUnit) {
+    schedule(new ReadyCompute() {
+      @Override
+      public boolean isReady() {
+        return true;
+      }
+
+      @Override
+      public void compute(final TaskScheduler scheduler) {
+        runnable.accept(scheduler);
+      }
+    }, afterDelay, delayUnit);
+  }
+
+  @Override
+  public void schedule(final ReadyCompute runnable) {
+    schedule(runnable, 0, TimeUnit.SECONDS);
+  }
+
+  @Override
+  public void schedule(final ReadyCompute runnable, final long afterDelay, final TimeUnit delayUnit) {
     tasks.add(new Task(runnable, nanoTime.nanoTime() + delayUnit.toNanos(afterDelay)));
   }
 
   @Override
-  public boolean select(final SelectClause... clauses) {
-    // select at random from ready send/recv channels (if any) and invoke corresponding clause
+  public boolean runReadyClauses(final SelectClause[] clauses) {
     final SelectClause[] readyClauses = Arrays.stream(clauses)
-      .filter(c -> c.getChannel().isReady()).toArray(SelectClause[]::new);
-    if (readyClauses.length < 1) {
-      return true; // re-schedule whileSelect
-    }
+      .filter(clause -> clause.getChannel().isReady()).toArray(SelectClause[]::new);
+    assert readyClauses.length > 0 : "Select expression can't run with no ready send/receive clauses";
     final int i = random.nextInt(readyClauses.length);
     final SelectClause readyClause = readyClauses[i];
     return readyClause.getClause().getAsBoolean();
   }
-
 }

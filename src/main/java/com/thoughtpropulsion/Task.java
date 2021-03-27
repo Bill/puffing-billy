@@ -1,16 +1,15 @@
 package com.thoughtpropulsion;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Note: this class has a natural ordering that is inconsistent with equals.
  */
 public class Task implements Comparable<Task> {
-  public final Consumer<TaskScheduler> runnable;
+  public final ReadyCompute runnable;
   public final long runnableAsOfNanos;
 
-  public Task(final Consumer<TaskScheduler> runnable, final long runnableAsOfNanos) {
+  public Task(final ReadyCompute runnable, final long runnableAsOfNanos) {
     this.runnable = runnable;
     this.runnableAsOfNanos = runnableAsOfNanos;
   }
