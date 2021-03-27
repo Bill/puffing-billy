@@ -3,10 +3,10 @@ package com.thoughtpropulsion.test;
 import com.google.common.collect.Streams;
 import com.thoughtpropulsion.ChannelReading;
 import com.thoughtpropulsion.ChannelWriting;
+import com.thoughtpropulsion.Continuation;
 import com.thoughtpropulsion.NanoTime;
 import com.thoughtpropulsion.Random;
 import com.thoughtpropulsion.RandomImpl;
-import com.thoughtpropulsion.ReadyCompute;
 import com.thoughtpropulsion.SelectClause;
 import com.thoughtpropulsion.SelectProcessor;
 import com.thoughtpropulsion.Task;
@@ -20,7 +20,8 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+
+import static com.thoughtpropulsion.Continuation.NoOp;
 
 public class TestScheduler implements TaskScheduler {
 
@@ -92,54 +93,15 @@ public class TestScheduler implements TaskScheduler {
   }
 
   @Override
-  public void schedule(final Runnable runnable) {
-    schedule( scheduler -> runnable.run());
+  public void schedule(final Continuation continuation) {
+    schedule(continuation, 0, TimeUnit.SECONDS);
   }
 
   @Override
-  public void schedule(final Runnable runnable, final long afterDelay, final TimeUnit delayUnit) {
-    schedule( scheduler -> runnable.run(), afterDelay, delayUnit);
-  }
-
-  @Override
-  public void schedule(final Consumer<TaskScheduler> runnable) {
-    schedule(new ReadyCompute() {
-      @Override
-      public boolean isReady() {
-        return true;
-      }
-
-      @Override
-      public void compute(final TaskScheduler scheduler) {
-        runnable.accept(scheduler);
-      }
-    });
-  }
-
-  @Override
-  public void schedule(final Consumer<TaskScheduler> runnable, final long afterDelay,
-                       final TimeUnit delayUnit) {
-    schedule(new ReadyCompute() {
-      @Override
-      public boolean isReady() {
-        return true;
-      }
-
-      @Override
-      public void compute(final TaskScheduler scheduler) {
-        runnable.accept(scheduler);
-      }
-    }, afterDelay, delayUnit);
-  }
-
-  @Override
-  public void schedule(final ReadyCompute runnable) {
-    schedule(runnable, 0, TimeUnit.SECONDS);
-  }
-
-  @Override
-  public void schedule(final ReadyCompute runnable, final long afterDelay, final TimeUnit delayUnit) {
-    tasks.add(new Task(runnable, nanoTime.nanoTime() + delayUnit.toNanos(afterDelay)));
+  public void schedule(final Continuation continuation, final long afterDelay, final TimeUnit delayUnit) {
+    if (continuation != NoOp) {
+      tasks.add(new Task(continuation, nanoTime.nanoTime() + delayUnit.toNanos(afterDelay)));
+    }
   }
 
   @Override

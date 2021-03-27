@@ -43,17 +43,17 @@ public class ReadModifyWriteTest {
     scheduler.triggerActions();
   }
 
-  private SuspendFunctionVoid newRegister(final ChannelReading<Integer> readChannel,
-                                          final ChannelWriting<Integer> writeChannel) {
+  private Continuation newRegister(final ChannelReading<Integer> readChannel,
+                                   final ChannelWriting<Integer> writeChannel) {
     return
       // introducing the Supplier around whileSelect() is a convenient way of introducing variables
-      new Supplier<SuspendFunctionVoid>() {
+      new Supplier<Continuation>() {
 
         int value = 0;
         int iteration = 0;
 
         @Override
-        public SuspendFunctionVoid get() {
+        public Continuation get() {
           return
             whileLoop(
               () -> iteration < NUM_TOTAL_MUTATIONS,
@@ -78,18 +78,18 @@ public class ReadModifyWriteTest {
       }.get(); // return whileLoop() with captured variables
   }
 
-  private SuspendFunctionVoid newMutator(final ChannelReading<Integer> readChannel,
-                                         final ChannelWriting<Integer> writeChannel, final int mutatorId) {
+  private Continuation newMutator(final ChannelReading<Integer> readChannel,
+                                  final ChannelWriting<Integer> writeChannel, final int mutatorId) {
 
     return
       // introducing the Supplier around whileSelect() is a convenient way of introducing variables
-      new Supplier<SuspendFunctionVoid>() {
+      new Supplier<Continuation>() {
 
         int value = 0;
         int iteration = 0;
 
         @Override
-        public SuspendFunctionVoid get() {
+        public Continuation get() {
           return
             whileLoop(
               () -> iteration < NUM_MUTATIONS_PER_MUTATOR,

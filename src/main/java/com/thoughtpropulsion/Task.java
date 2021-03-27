@@ -6,10 +6,10 @@ import java.util.Objects;
  * Note: this class has a natural ordering that is inconsistent with equals.
  */
 public class Task implements Comparable<Task> {
-  public final ReadyCompute runnable;
+  public final Continuation runnable;
   public final long runnableAsOfNanos;
 
-  public Task(final ReadyCompute runnable, final long runnableAsOfNanos) {
+  public Task(final Continuation runnable, final long runnableAsOfNanos) {
     this.runnable = runnable;
     this.runnableAsOfNanos = runnableAsOfNanos;
   }

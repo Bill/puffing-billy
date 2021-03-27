@@ -11,13 +11,11 @@ public class PriorityQueueTest {
   @Test
   public void holdsDuplicates() {
     final PriorityQueue<Task> queue = new PriorityQueue<>();
-    final Task task = new Task(new ReadyCompute() {
-      @Override
+    final Task task = new Task(new Continuation() {
       public boolean isReady() {
         return false;
       }
 
-      @Override
       public void compute(final TaskScheduler scheduler) {
       }
     }, 0);

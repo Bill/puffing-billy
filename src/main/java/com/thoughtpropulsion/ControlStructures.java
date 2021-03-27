@@ -5,11 +5,13 @@ import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import static com.thoughtpropulsion.Continuation.NoOp;
+
 public class ControlStructures {
   private ControlStructures() {};
 
-  public static SuspendFunctionVoid whileLoop(final BooleanSupplier condition, final SuspendFunctionVoid loopBody) {
-    return new SuspendFunctionVoid() {
+  public static Continuation whileLoop(final BooleanSupplier condition, final Continuation loopBody) {
+    return new Continuation() {
       @Override
       public boolean isReady() {
         return condition.getAsBoolean() && loopBody.isReady();
@@ -31,8 +33,8 @@ public class ControlStructures {
        do loopBody
      }
      */
-  public static SuspendFunctionVoid forLoop(final int n, final BiConsumer<Integer,TaskScheduler> loopBody) {
-    return new SuspendFunctionVoid() {
+  public static Continuation forLoop(final int n, final BiConsumer<Integer,TaskScheduler> loopBody) {
+    return new Continuation() {
 
       private int i = 0; // the loop variable
 
@@ -53,44 +55,12 @@ public class ControlStructures {
     };
   }
 
-  /*
-   Just showing that we can implement the for loop using the while loop.
-   This is has one more allocation that the one above:
-   the single-element array for the loop counter.
-   */
-  public static SuspendFunctionVoid forLoopFromWhile(final int n, final BiConsumer<Integer,TaskScheduler> loopBody) {
-
-    return new Supplier<SuspendFunctionVoid>() {
-
-      int i = 0;
-
-      @Override
-      public SuspendFunctionVoid get() {
-        return whileLoop(() -> i < n,
-          new SuspendFunctionVoid() {
-            @Override
-            public boolean isReady() {
-              // TODO: test forLoop(select())--I don't think that will work without delegation here
-              return true;
-            }
-
-            @Override
-            public void compute(final TaskScheduler scheduler) {
-              ++i;
-              loopBody.accept(i, scheduler); // for side-effets
-            }
-          }
-        );
-      }
-    }.get();
-  }
-
-  public static <T> SuspendFunctionVoid statement(final Supplier<T> supplier) {
+  public static <T> Continuation statement(final Supplier<T> supplier) {
     return statement(() -> {supplier.get();});
   }
 
-  public static SuspendFunctionVoid statement(final Runnable runnable) {
-    return new SuspendFunctionVoid() {
+  public static Continuation statement(final Runnable runnable) {
+    return new Continuation() {
       @Override
       public boolean isReady() {
         return true;
@@ -103,34 +73,25 @@ public class ControlStructures {
     };
   }
 
-  public static SuspendFunctionVoid sequence(final SuspendFunctionVoid... steps) {
+  public static Continuation sequence(final Continuation... steps) {
 
-    if (steps.length < 1)
-      // TODO: optimize out this no-op statement
-      return new SuspendFunctionVoid() {
-        @Override
-        public boolean isReady() {
-          return true;
-        }
+    if (steps.length < 1) {
+      return NoOp;
+    }
 
-        @Override
-        public void compute(final TaskScheduler scheduler) {
-        }
-      }; // no-op
-
-    return new Supplier<SuspendFunctionVoid> () {
+    return new Supplier<Continuation> () {
 
       int i;
-      SuspendFunctionVoid result;
+      Continuation result;
 
       @Override
-      public SuspendFunctionVoid get() {
+      public Continuation get() {
         i = steps.length - 1; // last step
         result = steps[i--];
         while (i > -1) {
-          final SuspendFunctionVoid currentStep = steps[i];
-          final SuspendFunctionVoid subsequentSteps = result;
-          result = new SuspendFunctionVoid() {
+          final Continuation currentStep = steps[i];
+          final Continuation subsequentSteps = result;
+          result = new Continuation() {
 
             @Override
             public boolean isReady() {
@@ -148,17 +109,15 @@ public class ControlStructures {
         return result;
       }
     }.get();
-
-
   }
 
   /*
    Returns a select clause which is a predicate: given the scheduler, it returns true/false
    and invokes zero-or-more ready clauses as a side-effect.
    */
-  public static SuspendFunctionVoid select(
+  public static Continuation select(
     final SelectClause... clauses) {
-    return new SuspendFunctionVoid() {
+    return new Continuation() {
       @Override
       public boolean isReady() {
         return Arrays.stream(clauses).map(SelectClause::getChannel)
@@ -172,9 +131,9 @@ public class ControlStructures {
     };
   }
 
-  public static SuspendFunctionVoid whileSelect(
+  public static Continuation whileSelect(
     final SelectClause... clauses) {
-    return new SuspendFunctionVoid() {
+    return new Continuation() {
       @Override
       public boolean isReady() {
         return Arrays.stream(clauses).map(SelectClause::getChannel)
