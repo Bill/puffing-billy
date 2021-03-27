@@ -25,7 +25,7 @@ public interface Continuation {
   boolean isReady();
 
   /*
-     Compute the result. Won't be called until after isReady() returns true.
-     */
+   Compute. Won't be called until after isReady() returns true.
+   */
   void compute(TaskScheduler scheduler);
 }

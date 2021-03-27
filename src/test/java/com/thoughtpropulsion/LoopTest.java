@@ -1,7 +1,7 @@
 package com.thoughtpropulsion;
 
-import com.thoughtpropulsion.test.TestScheduler;
-import com.thoughtpropulsion.test.VirtualTime;
+import com.thoughtpropulsion.deterministic.TestScheduler;
+import com.thoughtpropulsion.deterministic.VirtualTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

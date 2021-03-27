@@ -1,4 +1,11 @@
-package com.thoughtpropulsion;
+package com.thoughtpropulsion.deterministic;
+
+import com.thoughtpropulsion.ChannelBiDirectional;
+import com.thoughtpropulsion.ChannelReading;
+import com.thoughtpropulsion.ChannelWriting;
+import com.thoughtpropulsion.ReceiveClause;
+import com.thoughtpropulsion.ReceiveOrClosedClause;
+import com.thoughtpropulsion.SendClause;
 
 import java.lang.reflect.Array;
 import java.util.function.BiPredicate;

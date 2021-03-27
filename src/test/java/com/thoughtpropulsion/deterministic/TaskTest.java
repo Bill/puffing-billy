@@ -1,5 +1,7 @@
-package com.thoughtpropulsion;
+package com.thoughtpropulsion.deterministic;
 
+import com.thoughtpropulsion.Continuation;
+import com.thoughtpropulsion.TaskScheduler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

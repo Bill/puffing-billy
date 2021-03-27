@@ -1,7 +1,8 @@
-package com.thoughtpropulsion;
+package com.thoughtpropulsion.deterministic;
 
-import com.thoughtpropulsion.test.TestScheduler;
-import com.thoughtpropulsion.test.VirtualTime;
+import com.thoughtpropulsion.ChannelBiDirectional;
+import com.thoughtpropulsion.ChannelReading;
+import com.thoughtpropulsion.ChannelWriting;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -12,13 +13,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ChannelBoundedClosedTest {
   private VirtualTime virtualTime;
   private TestScheduler scheduler;
-  private ChannelBounded<Integer> channel1;
+  private ChannelBiDirectional<Integer> channel1;
 
   @BeforeEach
   public void before() {
     virtualTime = new VirtualTime();
     scheduler = new TestScheduler(virtualTime);
-    channel1 = new ChannelBounded<>(Integer.class,1);
+    channel1 = scheduler.createBoundedChannel(Integer.class,1);
   }
 
   @Test

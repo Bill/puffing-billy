@@ -1,5 +1,7 @@
-package com.thoughtpropulsion;
+package com.thoughtpropulsion.deterministic;
 
+import com.thoughtpropulsion.ChannelReading;
+import com.thoughtpropulsion.ChannelWriting;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

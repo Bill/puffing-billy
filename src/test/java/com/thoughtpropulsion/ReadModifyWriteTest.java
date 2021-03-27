@@ -1,7 +1,7 @@
 package com.thoughtpropulsion;
 
-import com.thoughtpropulsion.test.TestScheduler;
-import com.thoughtpropulsion.test.VirtualTime;
+import com.thoughtpropulsion.deterministic.TestScheduler;
+import com.thoughtpropulsion.deterministic.VirtualTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,10 +30,10 @@ public class ReadModifyWriteTest {
   public void runRegisterAndMutatorsTest() {
 
     // channel for feeding the register
-    final ChannelBiDirectional<Integer> feedRegister = new ChannelBounded<>(Integer.class, NUM_TOTAL_MUTATIONS);
+    final ChannelBiDirectional<Integer> feedRegister = scheduler.createBoundedChannel(Integer.class, NUM_TOTAL_MUTATIONS);
 
     // channel for reading from the register
-    final ChannelBiDirectional<Integer> readRegister = new ChannelBounded<>(Integer.class, NUM_TOTAL_MUTATIONS);
+    final ChannelBiDirectional<Integer> readRegister = scheduler.createBoundedChannel(Integer.class, NUM_TOTAL_MUTATIONS);
 
     scheduler.schedule(newRegister(feedRegister.getReading(), readRegister.getWriting()));
 

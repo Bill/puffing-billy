@@ -1,4 +1,4 @@
-package com.thoughtpropulsion.test;
+package com.thoughtpropulsion.deterministic;
 
 import com.thoughtpropulsion.NanoTime;
 

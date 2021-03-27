@@ -1,24 +1,18 @@
-package com.thoughtpropulsion.test;
+package com.thoughtpropulsion.deterministic;
 
 import com.google.common.collect.Streams;
-import com.thoughtpropulsion.ChannelReading;
-import com.thoughtpropulsion.ChannelWriting;
+import com.thoughtpropulsion.ChannelBiDirectional;
 import com.thoughtpropulsion.Continuation;
 import com.thoughtpropulsion.NanoTime;
 import com.thoughtpropulsion.Random;
 import com.thoughtpropulsion.RandomImpl;
 import com.thoughtpropulsion.SelectClause;
-import com.thoughtpropulsion.SelectProcessor;
-import com.thoughtpropulsion.Task;
 import com.thoughtpropulsion.TaskScheduler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.thoughtpropulsion.Continuation.NoOp;
@@ -28,8 +22,6 @@ public class TestScheduler implements TaskScheduler {
   final NanoTime nanoTime;
   final Random random;
   final PriorityQueue<Task> tasks;
-  final Map<ChannelReading,Set<SelectProcessor>> readInterest;
-  final Map<ChannelWriting,Set<SelectProcessor>> writeInterest;
 
   public TestScheduler(final NanoTime nanoTime) {
     this(nanoTime, 0);
@@ -47,8 +39,6 @@ public class TestScheduler implements TaskScheduler {
     this.nanoTime = nanoTime;
     this.random = random;
     tasks = new PriorityQueue<>();
-    readInterest = new HashMap<>();
-    writeInterest = new HashMap<>();
   }
 
   private static RandomImpl getRandom(final int seedArg) {
@@ -66,7 +56,7 @@ public class TestScheduler implements TaskScheduler {
     Task head = tasks.peek();
 
     // as long as there is a runnable task now
-    while( head != null && head.runnableAsOfNanos <= now) {
+    while( head != null && head.readyAsOfNanos <= now) {
 
       // grab the list of tasks that are potentially runnable now
       final List<Task> runnableList = new ArrayList<>();
@@ -74,14 +64,14 @@ public class TestScheduler implements TaskScheduler {
         tasks.remove(head);
         runnableList.add(head);
         head = tasks.peek();
-      } while (head != null && head.runnableAsOfNanos <= now);
+      } while (head != null && head.readyAsOfNanos <= now);
 
       // filter the list further: to tasks that say they are ready
-      final Task[] runnables = runnableList.stream().filter(task -> task.runnable.isReady()).toArray(Task[]::new);
+      final Task[] runnables = runnableList.stream().filter(task -> task.continuation.isReady()).toArray(Task[]::new);
       if (runnables.length > 0) {
         // randomly pick one task to run
         final int i = random.nextInt(runnables.length);
-        runnables[i].runnable.compute(this);
+        runnables[i].continuation.compute(this);
 
         // re-queue the tasks we didn't run
         Streams.concat(
@@ -102,6 +92,11 @@ public class TestScheduler implements TaskScheduler {
     if (continuation != NoOp) {
       tasks.add(new Task(continuation, nanoTime.nanoTime() + delayUnit.toNanos(afterDelay)));
     }
+  }
+
+  @Override
+  public <T> ChannelBiDirectional<T> createBoundedChannel(final Class<T> clazz, final int n) {
+    return new ChannelBounded<>(clazz, n);
   }
 
   @Override
