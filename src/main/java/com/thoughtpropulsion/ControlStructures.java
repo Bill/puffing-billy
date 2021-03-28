@@ -25,36 +25,6 @@ public class ControlStructures {
     };
   }
 
-  /*
-     Construct a Runnable (continuation) that invokes a runnable (for side-effects) n times
-     This is how you implement a loop using the TaskScheduler framework.
-
-     for(int i = 0; i < n; ++i) {
-       do loopBody
-     }
-     */
-  public static Continuation forLoop(final int n, final BiConsumer<Integer,TaskScheduler> loopBody) {
-    return new Continuation() {
-
-      private int i = 0; // the loop variable
-
-      @Override
-      public boolean isReady() {
-        // TODO: test forLoop(select())--I don't think that will work without delegation here
-        return true;
-      }
-
-      @Override
-      public void compute(final TaskScheduler scheduler) {
-        if (i < n) {
-          loopBody.accept(i, scheduler); // for side-effects
-          ++i;
-          scheduler.schedule(this);// iterate
-        }
-      }
-    };
-  }
-
   public static <T> Continuation statement(final Supplier<T> supplier) {
     return statement(() -> {supplier.get();});
   }
