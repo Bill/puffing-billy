@@ -165,8 +165,8 @@ public class ChannelBounded<T> implements ChannelBiDirectional<T> {
     }
 
     @Override
-    public SendClause<T> onSend(final Consumer<ChannelWriting<T>> predicate) {
-      return onSend(channelWriting -> {predicate.accept(channelWriting); return true;});
+    public SendClause<T> onSend(final Runnable predicate) {
+      return onSend(channelWriting -> {predicate.run(); return true;});
     }
 
     @Override

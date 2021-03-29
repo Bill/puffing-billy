@@ -11,7 +11,7 @@ public interface ChannelWriting<T> extends Readiness, Closeable {
    */
   SendClause<T> onSend(final Predicate<ChannelWriting<T>> predicate);
 
-  SendClause<T> onSend(final Consumer<ChannelWriting<T>> predicate);
+  SendClause<T> onSend(final Runnable predicate);
 
   /*
    Low-level put on channel. Prefer non-blocking select/whileSelect with SendClause over this.

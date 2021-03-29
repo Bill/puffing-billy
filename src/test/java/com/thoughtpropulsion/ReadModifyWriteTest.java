@@ -66,7 +66,7 @@ public class ReadModifyWriteTest {
               readRequests.onReceive( responseChannel -> {
                 log("responding with: " + value);
                 // can't put directly to the responseChannel--have to do it in an onSend()
-                scheduler.schedule(select(responseChannel.onSend(_ignored -> {responseChannel.put(value);})));
+                scheduler.schedule(select(responseChannel.onSend(() -> {responseChannel.put(value);})));
               }),
               writeValues.onReceive( newValue -> {
                 log("setting register: " + newValue);
@@ -99,8 +99,7 @@ public class ReadModifyWriteTest {
           return whileLoop( () -> iteration < NUM_TOTAL_MUTATIONS,
             sequence(
               // send read request
-              // TODO: overload onSend on Runnable and BooleanSupplier since call site already has ChannelWriting
-              select( readRequests.onSend( _ignored -> {
+              select( readRequests.onSend( () -> {
                 log("requesting new value");
                 readRequests.put(readResponses.getWriting());
               })),
@@ -110,7 +109,7 @@ public class ReadModifyWriteTest {
                 recentValue = newValue;
               })),
               // write a new value
-              select(writeValues.onSend( _ignored -> {
+              select(writeValues.onSend( () -> {
                 final int updateValue = recentValue + 1;
                 log("writing: " + updateValue);
                 writeValues.put(updateValue);
