@@ -12,6 +12,11 @@ public interface Continuation {
     @Override
     public void compute ( final TaskScheduler scheduler){
     }
+
+    @Override
+    public String toString() {
+      return String.format("The NoOp Continuation");
+    }
   };
 
   /*

@@ -1,6 +1,5 @@
 package com.thoughtpropulsion.deterministic;
 
-import com.google.common.collect.Streams;
 import com.thoughtpropulsion.ChannelBiDirectional;
 import com.thoughtpropulsion.Continuation;
 import com.thoughtpropulsion.NanoTime;
@@ -57,26 +56,27 @@ public class TestScheduler implements TaskScheduler {
 
     // as long as there is a runnable task now
     while( head != null && head.readyAsOfNanos <= now) {
-
       // grab the list of tasks that are potentially runnable now
-      final List<Task> runnableList = new ArrayList<>();
+      final List<Task> timeToRun = new ArrayList<>();
       do {
         tasks.remove(head);
-        runnableList.add(head);
+        timeToRun.add(head);
         head = tasks.peek();
       } while (head != null && head.readyAsOfNanos <= now);
 
       // filter the list further: to tasks that say they are ready
-      final Task[] runnables = runnableList.stream().filter(task -> task.continuation.isReady()).toArray(Task[]::new);
-      if (runnables.length > 0) {
+      final Task[] readyToRun = timeToRun.stream().filter(task -> task.continuation.isReady()).toArray(Task[]::new);
+      if (readyToRun.length > 0) {
         // randomly pick one task to run
-        final int i = random.nextInt(runnables.length);
-        runnables[i].continuation.compute(this);
+        final int i = random.nextInt(readyToRun.length);
+        final Task taskToRun = readyToRun[i];
+        taskToRun.continuation.compute(this);
 
-        // re-queue the tasks we didn't run
-        Streams.concat(
-          Arrays.stream(Arrays.copyOfRange(runnables, 0, i)),
-          Arrays.stream(Arrays.copyOfRange(runnables, i + 1, runnables.length))).forEach(tasks::add);
+        timeToRun.forEach(task -> {
+          if (task != taskToRun) {
+            tasks.add(task);
+          }
+        });
       }
       head = tasks.peek();
     }

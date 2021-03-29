@@ -42,4 +42,10 @@ public class Task implements Comparable<Task> {
   public int hashCode() {
     return Objects.hash(continuation, readyAsOfNanos);
   }
+
+  @Override
+  public String toString() {
+    return String.format("Task %s: continuation: %s", System.identityHashCode(this), continuation);
+  }
+
 }

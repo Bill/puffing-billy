@@ -1,7 +1,6 @@
 package com.thoughtpropulsion;
 
 import java.util.Arrays;
-import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -14,13 +13,21 @@ public class ControlStructures {
     return new Continuation() {
       @Override
       public boolean isReady() {
-        return condition.getAsBoolean() && loopBody.isReady();
+        return true;
       }
 
       @Override
       public void compute(final TaskScheduler scheduler) {
-        loopBody.compute(scheduler); // for side-effects
-        scheduler.schedule(this); // iterate
+        if ( condition.getAsBoolean()) {
+          scheduler.schedule(
+            sequence(loopBody, this)
+          );
+        } // else we're done!
+      }
+
+      @Override
+      public String toString() {
+        return String.format("While Loop: %s", System.identityHashCode(this));
       }
     };
   }
@@ -39,6 +46,11 @@ public class ControlStructures {
       @Override
       public void compute(final TaskScheduler scheduler) {
         runnable.run();
+      }
+
+      @Override
+      public String toString() {
+        return String.format("Statement: %s", System.identityHashCode(this));
       }
     };
   }
@@ -73,6 +85,11 @@ public class ControlStructures {
               currentStep.compute(scheduler);
               scheduler.schedule(subsequentSteps);
             }
+
+            @Override
+            public String toString() {
+              return String.format("Sequence step: %s", System.identityHashCode(this));
+            }
           };
           --i;
         }
@@ -98,6 +115,11 @@ public class ControlStructures {
       public void compute(final TaskScheduler scheduler) {
         scheduler.runReadyClauses(clauses);
       }
+
+      @Override
+      public String toString() {
+        return String.format("Select Statement: %s", System.identityHashCode(this));
+      }
     };
   }
 
@@ -114,7 +136,12 @@ public class ControlStructures {
       public void compute(final TaskScheduler scheduler) {
         if (scheduler.runReadyClauses(clauses)) {
           scheduler.schedule(this);
-        }
+        } // else we're done!
+      }
+
+      @Override
+      public String toString() {
+        return String.format("While Select Statement: %s", System.identityHashCode(this));
       }
     };
   }

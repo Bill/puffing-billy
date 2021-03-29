@@ -4,9 +4,11 @@
 
 Java provides insufficient control of thread scheduling, particularly with regard to testing concurrent applications. This project provides an alternative concurrency framework, one that can be run on Java's native thread scheduling in production, but which can be run deterministically, in a single thread, during testing.
 
-This framework implements parts of a "modern CSP" (communicating sequential processes) model à la Clojure (`core.async`), Kotlin, and Go. The `Continuation` concept here maps closely to Coroutines/goroutines. Continuations are scheduled to run and they communicate with one another through channels.
+This framework implements parts of a "modern CSP" (communicating sequential processes) model à la Clojure (`core.async`), Kotlin, and Go. The `Continuation` concept here maps closely to Coroutines/goroutines. Continuations are scheduled to run and they communicate with one another exclusively through channels.
 
 Puffing Billy is not recommended for anyone, ever. It is tedious and painful to use. You should use Kotlin instead.
+
+Well actually, while Kotlin and the alternative modern CSP's are all very good and much nicer to program than Puffing Billy, none of them provides deterministic simulation testing yet. I entered a bug report ([kotlinx.coroutines issue #1630](https://github.com/Kotlin/kotlinx.coroutines/issues/1630)) and pull request ([kotlinx.coroutines pull request #1629](https://github.com/Kotlin/kotlinx.coroutines/pull/1629)) on kotlinx.coroutines in 2019 to begin adding support, but so far no one has taken notice. Maybe Puffing Billy will help generate support for the idea.
 
 # Things That Work In Deterministic Mode
 * schedule tasks to run now or in the future
@@ -19,13 +21,10 @@ Puffing Billy is not recommended for anyone, ever. It is tedious and painful to 
 * (there is currently no real/parallelizing/nondeterministic mode implemented)
 
 # TODO
-* fix deadlock in `ReadModifyWriteTest`
-* add `selectWhile()` test
-* add test for `forLoop()` with `select()` at head
 * implement real/parallelizing/nondeterministic runtime on `ScheduleThreadPoolExecutor` with a concurrency-capable channel implementation.
 * implement structured concurrency
 
 # FAQ
 
 1. Q: What is [Billy](https://github.com/Bill/) puffing? A: This project was named for a neat little train: [Puffing Billy](https://en.wikipedia.org/wiki/Puffing_Billy_(locomotive))!
-2. Q: But why? A: Puffing Billy is not recommended for anyone, ever. It is tedious and painful to use. You should use Kotlin instead. Puffing Billy was implemented solely as an experiment to see how much work it would be, and how it would look. Trust me: it's awful.
+2. Q: But why? A: Puffing Billy is not recommended for anyone, ever. It is tedious and painful to use. Puffing Billy was implemented solely as an experiment to see how much work it would be, and how it would look. Trust me: it's awful.

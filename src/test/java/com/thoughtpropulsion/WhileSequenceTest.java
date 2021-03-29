@@ -6,55 +6,50 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static com.thoughtpropulsion.ControlStructures.sequence;
 import static com.thoughtpropulsion.ControlStructures.statement;
+import static com.thoughtpropulsion.ControlStructures.whileLoop;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SequenceTest {
+public class WhileSequenceTest {
 
   private VirtualTime virtualTime;
   private TestScheduler scheduler;
 
   @BeforeEach
-  public void before() {
+  private void before() {
     virtualTime = new VirtualTime();
     scheduler = new TestScheduler(virtualTime);
   }
 
   @Test
-  public void flatSequenceTest() {
-
+  public void foo() {
     final AtomicInteger state = new AtomicInteger(0);
+    final int N = 4;
 
     scheduler.schedule(
-      sequence(
-        statement(() -> state.compareAndSet(0,1)),
-        statement(() -> state.compareAndSet(1,2))
-      )
+      new Supplier<Continuation>() {
+
+        int i = 0;
+
+        @Override
+        public Continuation get() {
+          return whileLoop(
+            () -> i < N,
+            sequence(
+              statement(() -> state.compareAndSet(i + 0,i + 1)),
+              statement(() -> state.compareAndSet(i + 1,i + 2)),
+              statement(() -> ++i)
+            ));
+        }
+      }.get()
     );
 
     scheduler.triggerActions();
 
-    assertThat(state.get()).isEqualTo(2);
+    assertThat(state.get()).isEqualTo((N - 1) + 2);
+
   }
-
-  @Test
-  public void nestedSequencesTest() {
-    final AtomicInteger state = new AtomicInteger(0);
-
-    scheduler.schedule(
-      sequence(
-        statement(() -> state.compareAndSet(0,1)),
-        sequence(
-          statement(() -> state.compareAndSet(1,2)),
-          statement(() -> state.compareAndSet(2,3)))
-      )
-    );
-
-    scheduler.triggerActions();
-
-    assertThat(state.get()).isEqualTo(3);
-  }
-
 }
