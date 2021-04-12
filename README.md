@@ -21,6 +21,7 @@ Well actually, while Kotlin and the alternative modern CSP's are all very good a
 * (there is currently no real/parallelizing/nondeterministic mode implemented)
 
 # TODO
+* Test the deterministic simulation for nondeterminism by adding test at end (of each test) to generate random number and verify it matches number generated from previous run. This needs to be part of the testing framework itself. Provide a way for a user to provide the expected value.
 * implement real/parallelizing/nondeterministic runtime on `ScheduleThreadPoolExecutor` with a concurrency-capable channel implementation.
 * implement structured concurrency
 
